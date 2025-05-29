@@ -40,7 +40,7 @@ app.post('/validar-dia', async (req, res) => {
 
     // Validar si es fin de semana
     if (dayOfWeek === 0 || dayOfWeek === 6) {
-      return res.json({
+      return res.status(409).json({
         esNoHabil: true,
         motivo: 'Fin de semana'
       });
@@ -54,14 +54,14 @@ app.post('/validar-dia', async (req, res) => {
     const feriadoEncontrado = feriados.find(d => d.date === fecha);
 
     if (feriadoEncontrado) {
-      return res.json({
+      return res.status(409).json({
         esNoHabil: true,
         motivo: `Feriado nacional: ${feriadoEncontrado.localName}`
       });
     }
 
     // Día hábil
-    return res.json({
+    return res.status(200).json({
       esNoHabil: false,
       motivo: 'Día hábil'
     });
