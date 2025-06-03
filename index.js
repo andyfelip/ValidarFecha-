@@ -60,6 +60,18 @@ app.post('/validar-dia', async (req, res) => {
       });
     }
 
+
+    //Validar Fecha Diciembre
+
+    if (dateObj.getUTCMonth() == 11){
+      return res.status(428).json({
+        esNoHabil: true, 
+        motivo: 'Mes de diciembre (Manejo Especial)'
+      }); 
+    }
+
+
+
     // Día hábil
     return res.status(200).json({
       esNoHabil: false,
