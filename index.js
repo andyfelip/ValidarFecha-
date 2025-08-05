@@ -1,19 +1,13 @@
-
 const express = require('express');
 const axios = require('axios');
 const app = express();
 
-
 // Middleware para parsear JSON
 app.use(express.json());
 
-
-
 // Calendario de Bloqueos embebido 
 const bloqueos = {
-
-  //Bloqueo Rojo -> Corresponde al Bloqueo Total 
-
+  // Bloqueo Rojo -> Corresponde al Bloqueo Total 
   "2025-01-14":"bloqueo_total", "2025-01-15":"bloqueo_total","2025-01-16":"bloqueo_total","2025-01-30":"bloqueo_total","2025-01-31":"bloqueo_total",
   "2025-02-01":"bloqueo_total","2025-02-02":"bloqueo_total","2025-02-14":"bloqueo_total","2025-02-15":"bloqueo_total","2025-02-16":"bloqueo_total","2025-02-17":"bloqueo_total","2025-02-27":"bloqueo_total","2025-02-28":"bloqueo_total",
   "2025-03-01":"bloqueo_total","2025-03-02":"bloqueo_total","2025-03-14":"bloqueo_total","2025-03-15":"bloqueo_total","2025-03-16":"bloqueo_total","2025-03-17":"bloqueo_total","2025-03-29":"bloqueo_total","2025-03-30":"bloqueo_total","2025-03-31":"bloqueo_total",
@@ -26,43 +20,37 @@ const bloqueos = {
   "2025-10-01":"bloqueo_total","2025-10-14":"bloqueo_total","2025-10-15":"bloqueo_total","2025-10-16":"bloqueo_total","2025-10-29":"bloqueo_total","2025-10-30":"bloqueo_total",
   "2025-11-01":"bloqueo_total","2025-11-02":"bloqueo_total","2025-11-03":"bloqueo_total","2025-11-04":"bloqueo_total","2025-11-14":"bloqueo_total","2025-11-15":"bloqueo_total","2025-11-16":"bloqueo_total",
 
-
-  //Bloqueo Amarillo -> Corresponde al Bloqueo Parcial hasta las 5am  
+  // Bloqueo Amarillo -> Corresponde al Bloqueo Parcial hasta las 5am  
   "2025-01-13":"bloqueo_parcial", "2025-01-29":"bloqueo_parcial",
   "2025-02-13":"bloqueo_parcial", "2025-02-26":"bloqueo_parcial",
   "2025-03-13":"bloqueo_parcial", "2025-03-28":"bloqueo_parcial",
   "2025-04-28":"bloqueo_parcial",
   "2025-05-13":"bloqueo_parcial", "2025-05-29":"bloqueo_parcial", 
-  "2025-06-10":"bloqueo_parcial", "2025-06-28":"bloqueo_parcial",
+  "2025-06-13":"bloqueo_parcial", "2025-06-28":"bloqueo_parcial",
   "2025-07-13":"bloqueo_parcial", "2025-07-29":"bloqueo_parcial",
   "2025-08-13":"bloqueo_parcial", "2025-08-29":"bloqueo_parcial",
   "2025-09-13":"bloqueo_parcial", "2025-09-28":"bloqueo_parcial",
   "2025-10-13":"bloqueo_parcial", "2025-10-29":"bloqueo_parcial",
   "2025-11-13":"bloqueo_parcial", 
 
-
-  //Bloqueo Gris -> Corresponde al Bloqueo de Semana Santa 
+  // Bloqueo Gris -> Corresponde al Bloqueo de Semana Santa 
   "2025-04-14": "especial", "2025-04-15": "especial", "2025-04-16": "especial",
   "2025-04-17": "especial", "2025-04-18": "especial", "2025-04-19": "especial", "2025-04-20": "especial",
   "2025-05-11": "especial", "2025-06-15": "especial",
 
-
-
-  //Bloqueo Azul -> Corresponde al Bloqueo de Diciembre 
-    ...Object.fromEntries([
-    //Ultima Semana de Noviembre 
+  // Bloqueo Azul -> Corresponde al Bloqueo de Diciembre 
+  ...Object.fromEntries([
+    // Última Semana de Noviembre 
     ...Array.from({length: 7}, (_, i) => {
       const dia = (24 + i ).toString().padStart(2, '0'); 
       return[`2025-11-${dia}`, "freeze_anual"]
     }), 
-  
-    //Todo Diciembre
+    // Todo Diciembre
     ...Array.from({length: 31}, (_, i) => {
       const dia = (i + 1 ).toString().padStart(2, '0'); 
       return[`2025-12-${dia}`, "freeze_anual"]
     }), 
-
-    //Primeros 5 días de enero de 2026
+    // Primeros 5 días de enero de 2026
     ...Array.from({length: 5}, (_, i) => {
       const dia = (i + 1 ).toString().padStart(2, '0'); 
       return[`2026-01-${dia}`, "freeze_anual"]
@@ -82,16 +70,15 @@ app.use((req, res, next) => {
   const base64Credentials = auth.split(' ')[1];
   const credentials = Buffer.from(base64Credentials, 'base64').toString('ascii');
   const [user, pass] = credentials.split(':');
-  
+
   if (user === process.env.AUTH_USER && pass === process.env.AUTH_PASS) {
     return next();
   } else {
     return res.status(403).send('Credenciales incorrectas');
   }
-
 });
 
-// Definicion del EndPoint que nos permite validar la fecha 
+// Endpoint para validar la fecha
 app.post('/validar-dia', async (req, res) => {
   const { fecha } = req.body;
 
@@ -102,18 +89,26 @@ app.post('/validar-dia', async (req, res) => {
 
   try {
     const ahora = new Date();
-    const hoy = ahora.toLocaleDateString('sv-SE');
+    const hoy = ahora.toLocaleDateString('sv-SE'); // YYYY-MM-DD
     const dateObj = new Date(fecha); 
 
     console.log("Fecha ingresada:", fecha);
     console.log("Fecha actual (sistema):", hoy);
     console.log("Hora actual (sistema):", ahora.getHours());
 
-    //Bloqueos a nivel del calendario 
+    // ❌ Bloquear si la fecha es anterior a la actual
+    if (dateObj < new Date(hoy)) {
+      return res.status(400).json({
+        esNoHabil: true,
+        codigo: "FECHA-ANT",
+        motivo: "No se permiten fechas anteriores a la actual"
+      });
+    }
 
+    // Bloqueos a nivel del calendario
     const tipo = bloqueos[fecha]; 
 
-    if(tipo == "bloqueo_total"){
+    if (tipo === "bloqueo_total") {
       return res.status(423).json({
         esNoHabil: true, 
         codigo: "BLQ-01",
@@ -136,8 +131,8 @@ app.post('/validar-dia', async (req, res) => {
         esNoHabil: true,
         codigo: "ESP-01",
         motivo: "Día especial bloqueado para cambios (Semana Santa, Día del Padre, etc.)"
-    });
-  }
+      });
+    }
 
     if (tipo === "freeze_anual") {
       return res.status(428).json({
@@ -147,7 +142,7 @@ app.post('/validar-dia', async (req, res) => {
       });
     }
 
-    // Día hábil
+    // ✅ Día hábil
     return res.status(200).json({
       esNoHabil: false,
       codigo: "OK-00",
