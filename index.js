@@ -92,6 +92,10 @@ app.post('/validar-dia', async (req, res) => {
     const hoy = ahora.toLocaleDateString('sv-SE'); // YYYY-MM-DD
     const dateObj = new Date(fecha); 
 
+    ahora.setHours(0,0,0,0); 
+
+    dateObj.setHours(0,0,0,0); 
+
     console.log("Fecha ingresada:", fecha);
     console.log("Fecha actual (sistema):", hoy);
     console.log("Hora actual (sistema):", ahora.getHours());
